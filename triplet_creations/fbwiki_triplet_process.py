@@ -106,10 +106,13 @@ if __name__ == '__main__':
         'First Stage'
         #--------------------------------------------------------------------------
         # Step 1: Collect the entities set to keep by pruning low occurances, but maintaining crucial ones like categorical
-        df = load_triplets(args.primary_triplet_path)
-        entity_set = collect_entities_via_pruning(df, pruning_num=args.pruning_threshold)
+
+        triplets_df = load_triplets(args.primary_triplet_path) # Load the triplets to ensure the file exists and is readable
+
+        entity_set = collect_entities_via_pruning(triplets_df,
+                                                  pruning_num=args.pruning_threshold)
         
-        entity_set.update(collect_tails_given_relation(args.primary_triplet_path,
+        entity_set.update(collect_tails_given_relation(triplets_df,
                                                         ['P31', 'P279', 'P361',
                                                           'P19', 'P20', 'P793', 'P157', 'P509',
                                                           'P22', 'P25', 'P26', 'P40', 'P1038', 'P3373',
@@ -120,16 +123,17 @@ if __name__ == '__main__':
         # replaces, replaced by]
         
         # Step 2: Filter triplets based on the entity set and store the new triplets
-        filter_triplets_by_entities(
-            args.primary_triplet_path, 
+        filtered_df = filter_triplets_by_entities(
+            triplets_df, 
             entity_set, 
-            args.filtered_triplet_output)
+            args.filtered_triplet_output
+        )
         
         #--------------------------------------------------------------------------
         # Step 3: Replace inverses and remove duplicates
         
-        clean_triplet_relations(
-            triplet_filtered_file_path=args.filtered_triplet_output,
+        clean_df = clean_triplet_relations(
+            triplet_filtered=filtered_df, 
             triplet_processed_file_path=args.processed_triplet_output,
             relationship_hierarchy_mapping=args.relationship_hierarchy_path,
             inverse_mapping_path=args.inverse_mapping_path,
@@ -142,8 +146,8 @@ if __name__ == '__main__':
         # Step 4: Extract Information and Statistics
         
         extract_triplet_sets(
-            triplet_processed_file_path=args.processed_triplet_output,
-            triplet_file_path=args.primary_triplet_path,
+            triplet_processed=clean_df,
+            triplet_original=triplets_df,
             nodes_candidates_path=args.candidate_nodes_output, 
             relationship_candidates_path=args.candidate_relationships_output, 
             nodes_missing_path=args.missing_nodes_output
@@ -151,9 +155,12 @@ if __name__ == '__main__':
     else:
         'Second Stage'
         #----------------------------------------------------------------------
+        
+        triplets_df = load_triplets(args.secondary_triplet_path) # Load the triplets to ensure the file exists and is readable
+        
         # Step 1: Replace inverses and remove duplicates of new triplets, then filter them on the valid entities & rel sets 
-        process_and_merge_missing_triplets( 
-                missing_triplets_path = args.secondary_triplet_path,
+        final_df = process_and_merge_missing_triplets( 
+                missing_triplets_path = triplets_df,
                 candidates_triplets_path = args.processed_triplet_output,
                 triplets_output_path = args.final_triplet_output,
                 nodes_candidates_path = args.candidate_nodes_output, 
@@ -167,7 +174,7 @@ if __name__ == '__main__':
         #--------------------------------------------------------------------------
         # Step 2: Extract Information and Statistics
         extract_triplet_sets(
-            triplet_processed_file_path=args.final_triplet_output,
+            triplet_processed=final_df,
             nodes_candidates_path=args.final_nodes_output, 
             relationship_candidates_path=args.final_relationships_output, 
             )

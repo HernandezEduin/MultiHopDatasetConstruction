@@ -63,13 +63,15 @@ if __name__ == '__main__':
             args.entity_forwarding_path, 
         )
 
-    #--------------------------------------------------------------------------										
+    #--------------------------------------------------------------------------
+    triplets_df = load_triplets(args.primary_triplet_path)  # Ensure the triplet file is loaded
+
     # Step 1: Collect entities and relationships for pruning and filtering
-    entity_set = set(load_triplets(args.primary_triplet_path)['head'])
-    
+    entity_set = set(triplets_df['head'])
+
     # Step 2: Filter triplets based on the entity set and store the new triplets, contains duplicate removal
-    filter_triplets_by_entities(
-        args.primary_triplet_path, 
+    filtered_df = filter_triplets_by_entities(
+        triplets_df, 
         entity_set, 
         args.filtered_triplet_output)
     
@@ -77,12 +79,12 @@ if __name__ == '__main__':
     # Step 4: Extract Information and Statistics
     
     extract_triplet_sets(
-        triplet_processed_file_path=args.filtered_triplet_output,
-        triplet_file_path=None,
+        triplet_processed=filtered_df,
+        triplet_original = None,
         nodes_candidates_path=args.candidate_nodes_output, 
         relationship_candidates_path=args.candidate_relationships_output, 
-        nodes_missing_path=None
+        nodes_missing_path = None
         )
     
-    missing_nodes = entity_set - set(load_triplets(args.filtered_triplet_output)['head'])
+    missing_nodes = entity_set - (set(filtered_df['head']) | set(filtered_df['tail']))
     print(f'Number of Missing Nodes: {len(missing_nodes)}')
